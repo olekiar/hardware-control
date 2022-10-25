@@ -1,0 +1,76 @@
+#!/usr/bin/python3
+import json
+import typer
+import os
+from pathlib import Path
+from time import sleep
+import numpy as np
+
+
+HWMON_NAME = "octo"
+BASE_HWMON_PATH = Path("/sys/class/hwmon/")
+
+
+def set_speed(pwm_file: str, speed: int, attempts: int = 10):
+    for attempt in range(attempts):
+        try:
+            with open(pwm_file, "w") as f:
+                f.write(str(speed))
+            break
+        except OSError as e:
+            if attempt == attempts-1:
+                print(f"ERROR: Could not set {pwm_file} to {speed}")
+            else:
+                sleep(1)
+
+
+def hardwarecontrol(config_filepath: str = "/opt/hwctrl/hardware-control-config", update_interval: int = 10):
+    config_fp = Path(config_filepath)
+    assert config_fp.exists(), f"Please setup your hardware-control configuration. No file found at {config_filepath}"
+    with open(config_fp, "r") as f:
+        configs = json.load(f)
+
+    print(f"Loaded config from {config_filepath}")
+
+    hwmon_path = None
+    for content in os.listdir(BASE_HWMON_PATH):
+        if (BASE_HWMON_PATH / content).is_dir() and (BASE_HWMON_PATH / content / "name").exists():
+            with open(BASE_HWMON_PATH / content / "name") as f:
+                name = f.readline().strip()
+            if name == HWMON_NAME:
+                hwmon_path = BASE_HWMON_PATH / content
+                break
+    if hwmon_path == None:
+        print(f"{HWMON_NAME} not part of {str(BASE_HWMON_PATH)}")
+        exit(1)
+
+    print(f"hwmon path identified as {str(hwmon_path)}")
+    
+    for config in configs:
+        assert (hwmon_path / config["temp_input"]).exists(), f"'temp_input' file ({hwmon_path / config['temp_input']}) does not exists"
+        assert (hwmon_path / config["pwm"]).exists(), f"'pwm' file ({hwmon_path / config['pwm']}) does not exists"
+        assert len(config["speeds"]) == len(config["temps"]), "Length of 'speeds' and 'temps' in config has to be equal"
+        assert len(config["speeds"]) >= 2, "Provide at least 2 entries for 'speeds'"
+        assert len(config["temps"]) >= 2, "Provide at least 2 entries for 'temps'"
+
+    print("Config assertion test passed")
+
+    try:
+        print("Adjusting fans...")
+        while True:
+            for config in configs:
+                with open(hwmon_path / config["temp_input"]) as f:
+                    temp = float(f.readline()) / 1000.0
+                speed = int(np.interp(temp, config["temps"], config["speeds"]))
+                set_speed(hwmon_path / config["pwm"], speed)
+            sleep(update_interval)
+    finally:
+        print("Exiting Hardware Control")
+        print("Setting fans back to full speed...")
+        for config in configs:
+            set_speed(hwmon_path / config["pwm"], 255)
+        print("Done")
+
+if __name__ == "__main__":
+    print("Starting hardware-control")
+    typer.run(hardwarecontrol)
