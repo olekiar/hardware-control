@@ -55,14 +55,24 @@ def hardwarecontrol(config_filepath: str = "/opt/hwctrl/hardware-control-config"
 
     print("Config assertion test passed")
 
+    prev_temps = [0 for _ in configs]
+
     try:
         print("Adjusting fans...")
         while True:
-            for config in configs:
-                with open(hwmon_path / config["temp_input"]) as f:
-                    temp = float(f.readline()) / 1000.0
-                speed = int(np.interp(temp, config["temps"], config["speeds"]))
-                set_speed(hwmon_path / config["pwm"], speed)
+            read_temps = {}
+            for i, config in enumerate(configs):
+                temp_input_filepath = str(hwmon_path / config["temp_input"])
+                if temp_input_filepath in read_temps:
+                    temp = read_temps[temp_input_filepath]
+                else:
+                    with open(temp_input_filepath, "r") as f:
+                        temp = int(float(f.readline()) / 1000.0)
+                        read_temps[temp_input_filepath] = temp
+                if temp != prev_temps[i]:
+                    prev_temps[i] = temp
+                    speed = int(np.interp(temp, config["temps"], config["speeds"]))
+                    set_speed(hwmon_path / config["pwm"], speed)
             sleep(update_interval)
     finally:
         print("Exiting Hardware Control")
