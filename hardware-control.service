@@ -1,0 +1,13 @@
+[Unit]
+Description=Fan control using Octo with temperature sensor
+After=syslog.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=hwctrl
+Restart=on-failure
+RestartSec=20s
+
+[Install]
+WantedBy=multi-user.target
