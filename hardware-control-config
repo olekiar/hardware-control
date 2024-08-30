@@ -1,0 +1,32 @@
+[
+	{
+		"temp_input": "temp1_input",
+		"pwm": "pwm1",
+		"temps": [35, 47],
+		"speeds": [210, 210]
+	},
+	{
+		"temp_input": "temp1_input",
+		"pwm": "pwm2",
+		"temps": [35, 40, 42],
+		"speeds": [100, 200, 255]
+	},
+	{
+		"temp_input": "temp1_input",
+		"pwm": "pwm4",
+		"temps": [35, 40, 42],
+		"speeds": [100, 200, 255]
+	},
+	{
+		"temp_input": "temp1_input",
+		"pwm": "pwm5",
+		"temps": [35, 40, 42],
+		"speeds": [100, 200, 255]
+	},
+	{
+		"temp_input": "temp1_input",
+		"pwm": "pwm7",
+		"temps": [35, 40, 42],
+		"speeds": [100, 200, 255]
+	}
+]
